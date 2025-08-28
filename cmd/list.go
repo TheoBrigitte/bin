@@ -68,7 +68,7 @@ func newListCmd() *listCmd {
 			magentaItalic := color.New(color.FgMagenta, color.Italic).Sprint
 			p, v, u, s := magentaItalic(_rPad(("Path"), pL)), magentaItalic(_rPad("Version", vL)), magentaItalic(_rPad("URL", uL)), magentaItalic("Status")
 
-			fmt.Printf("\n%s  %s  %s  %s", p, v, u, s)
+			fmt.Printf("%s  %s  %s  %s", p, v, u, s)
 
 			for _, k := range binPaths {
 				b := cfg.Bins[k]
@@ -89,7 +89,7 @@ func newListCmd() *listCmd {
 
 				fmt.Printf("\n%s  %s  %s  %s", _rPad(p, pL), _rPad(b.Version, vL), _rPad(b.URL, uL), status)
 			}
-			fmt.Print("\n\n")
+			fmt.Print("\n")
 			return nil
 		},
 	}
