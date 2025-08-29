@@ -72,7 +72,7 @@ func newUpdateCmd() *updateCmd {
 			updateFailures := map[*config.Binary]error{}
 
 			for _, b := range binsToProcess {
-				p, err := providers.New(b.URL, b.Provider)
+				p, err := providers.New(b.URL, b.Provider, b.VersionURL)
 				if err != nil {
 					return err
 				}
@@ -115,7 +115,7 @@ func newUpdateCmd() *updateCmd {
 			// use the same code in both places
 			for ui, b := range toUpdate {
 
-				p, err := providers.New(ui.url, b.Provider)
+				p, err := providers.New(ui.url, b.Provider, b.VersionURL)
 				if err != nil {
 					return err
 				}

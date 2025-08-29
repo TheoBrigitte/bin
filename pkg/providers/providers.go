@@ -54,7 +54,7 @@ var (
 	goinstallUrlPrefix = regexp.MustCompile("^goinstall://")
 )
 
-func New(u, provider string) (Provider, error) {
+func New(u, provider, versionURL string) (Provider, error) {
 	if dockerUrlPrefix.MatchString(u) {
 		return newDocker(u)
 	}
@@ -63,6 +63,10 @@ func New(u, provider string) (Provider, error) {
 	}
 	if !httpUrlPrefix.MatchString(u) {
 		u = fmt.Sprintf("https://%s", u)
+	}
+
+	if strings.Contains(u, "{version}") {
+		return newGeneric(u, versionURL)
 	}
 
 	purl, err := url.Parse(u)
@@ -82,5 +86,5 @@ func New(u, provider string) (Provider, error) {
 		return newHashiCorp(purl)
 	}
 
-	return nil, fmt.Errorf("Can't find provider for url %s", u)
+	return newGeneric(purl.String(), versionURL)
 }

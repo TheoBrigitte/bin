@@ -71,7 +71,7 @@ func newEnsureCmd() *ensureCmd {
 					continue
 				}
 
-				p, err := providers.New(binCfg.URL, binCfg.Provider)
+				p, err := providers.New(binCfg.URL, binCfg.Provider, binCfg.VersionURL)
 				if err != nil {
 					return err
 				}

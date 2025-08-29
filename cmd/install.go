@@ -9,10 +9,11 @@ import (
 	"strings"
 
 	"github.com/caarlos0/log"
+	"github.com/spf13/cobra"
+
 	"github.com/marcosnils/bin/pkg/assets"
 	"github.com/marcosnils/bin/pkg/config"
 	"github.com/marcosnils/bin/pkg/providers"
-	"github.com/spf13/cobra"
 )
 
 type installCmd struct {
@@ -21,9 +22,10 @@ type installCmd struct {
 }
 
 type installOpts struct {
-	force    bool
-	provider string
-	all      bool
+	force      bool
+	provider   string
+	all        bool
+	versionURL string
 }
 
 func newInstallCmd() *installCmd {
@@ -54,7 +56,7 @@ func newInstallCmd() *installCmd {
 			// TODO check if binary already exists in config
 			// and triger the update process if that's the case
 
-			p, err := providers.New(u, root.opts.provider)
+			p, err := providers.New(u, root.opts.provider, root.opts.versionURL)
 			if err != nil {
 				return err
 			}
@@ -85,6 +87,7 @@ func newInstallCmd() *installCmd {
 				RemoteName:  pResult.Name,
 				Path:        absPath,
 				Version:     pResult.Version,
+				VersionURL:  root.opts.versionURL,
 				Hash:        fmt.Sprintf("%x", hash),
 				URL:         u,
 				Provider:    p.GetID(),
@@ -104,6 +107,7 @@ func newInstallCmd() *installCmd {
 	root.cmd.Flags().BoolVarP(&root.opts.force, "force", "f", false, "Force the installation even if the file already exists")
 	root.cmd.Flags().BoolVarP(&root.opts.all, "all", "a", false, "Show all possible download options (skip scoring & filtering)")
 	root.cmd.Flags().StringVarP(&root.opts.provider, "provider", "p", "", "Forces to use a specific provider")
+	root.cmd.Flags().StringVar(&root.opts.versionURL, "version-url", "", "URL used to fetch for the version from (if supported by the provider)")
 	return root
 }
 

@@ -28,6 +28,7 @@ type Binary struct {
 	Path       string `json:"path"`
 	RemoteName string `json:"remote_name"`
 	Version    string `json:"version"`
+	VersionURL string `json:"version_url"`
 	Hash       string `json:"hash"`
 	URL        string `json:"url"`
 	Provider   string `json:"provider"`
