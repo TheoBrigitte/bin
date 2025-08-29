@@ -48,6 +48,15 @@ func (g *generic) Fetch(opts *FetchOpts) (*File, error) {
 // GetLatestVersion checks the version url and
 // returns the corresponding name and url to fetch the version
 func (g *generic) GetLatestVersion() (string, string, error) {
+	if g.versionURL == nil {
+		u, err := url.Parse(g.url)
+		if err != nil {
+			return "", "", err
+		}
+
+		return "", u.String(), nil
+	}
+
 	log.Debugf("Getting version from %s", g.versionURL.String())
 
 	resp, err := g.client.Get(g.versionURL.String())
@@ -77,11 +86,15 @@ func (g *generic) GetID() string {
 	return "generic"
 }
 
-func newGeneric(u, versionURL string) (Provider, error) {
+func newGeneric(u, versionURL string) (p Provider, err error) {
 	// Validate the versionURL
-	lurl, err := url.Parse(versionURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid versionURL: %w", err)
+	var lurl *url.URL
+
+	if versionURL != "" {
+		lurl, err = url.Parse(versionURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid versionURL: %w", err)
+		}
 	}
 
 	return &generic{url: u, versionURL: lurl, client: http.DefaultClient}, nil
