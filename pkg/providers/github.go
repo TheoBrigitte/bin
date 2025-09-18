@@ -10,8 +10,9 @@ import (
 
 	"github.com/caarlos0/log"
 	"github.com/google/go-github/v31/github"
-	"github.com/marcosnils/bin/pkg/assets"
 	"golang.org/x/oauth2"
+
+	"github.com/marcosnils/bin/pkg/assets"
 )
 
 type gitHub struct {
@@ -20,6 +21,7 @@ type gitHub struct {
 	owner  string
 	repo   string
 	tag    string
+	asset  string
 	token  string
 }
 
@@ -48,10 +50,7 @@ func (g *gitHub) Fetch(opts *FetchOpts) (*File, error) {
 		return nil, err
 	}
 
-	candidates := []*assets.Asset{}
-	for _, a := range release.Assets {
-		candidates = append(candidates, &assets.Asset{Name: a.GetName(), URL: a.GetURL()})
-	}
+	candidates := getCandidates(release.Assets, g.asset)
 	f := assets.NewFilter(&assets.FilterOpts{SkipScoring: opts.All, PackagePath: opts.PackagePath, SkipPathCheck: opts.SkipPatchCheck, PackageName: opts.PackageName})
 
 	gf, err := f.FilterAssets(g.repo, candidates)
@@ -79,6 +78,27 @@ func (g *gitHub) Fetch(opts *FetchOpts) (*File, error) {
 	return file, nil
 }
 
+// getCandidates returns a list of assets to be used as candidates for filtering
+// If userAsset is provided, it will try to find that asset and return it as the only candidate
+func getCandidates(githubAssets []*github.ReleaseAsset, userAsset string) []*assets.Asset {
+	candidates := []*assets.Asset{}
+	foundUserAsset := false
+	for _, a := range githubAssets {
+		if userAsset != "" && a.GetName() == userAsset {
+			foundUserAsset = true
+			candidates = []*assets.Asset{&assets.Asset{Name: a.GetName(), URL: a.GetURL()}}
+			break
+		}
+		candidates = append(candidates, &assets.Asset{Name: a.GetName(), URL: a.GetURL()})
+	}
+
+	if userAsset != "" && !foundUserAsset {
+		log.Warnf("asset %s not found in release", userAsset)
+	}
+
+	return candidates
+}
+
 // GetLatestVersion checks the latest repo release and
 // returns the corresponding name and url to fetch the version
 func (g *gitHub) GetLatestVersion() (string, string, error) {
@@ -96,18 +116,31 @@ func (g *gitHub) GetID() string {
 }
 
 func newGitHub(u *url.URL) (Provider, error) {
+	// Supported Github URL formats:
+	// - https://github.com/owner/repo
+	// - https://github.com/owner/repo/releases/tag/v1.2.3
+	// - https://github.com/owner/repo/releases/download/v1.2.3
+	// - https://github.com/owner/repo/releases/download/v1.2.3/asset-name
 	splitedPath := strings.Split(u.Path, "/")
 	if len(splitedPath) < 3 {
 		return nil, fmt.Errorf("error parsing Github URL %s, can't find owner and repo", u.String())
 	}
 
-	// it's a specific releases URL
+	// Github repository owner and name are always the 2nd and 3rd path elements
+	owner := splitedPath[1]
+	repo := splitedPath[2]
+
+	// If the URL is a release or download URL, try to get the tag and asset name
+	// otherwise, latest release will be used
 	var tag string
-	if strings.Contains(u.Path, "/releases/") && len(splitedPath) > 4 {
-		// For release and download URL's, the
-		// path is usually /releases/tag/v0.1
-		// or /releases/download/v0.1.
+	var asset string
+	if len(splitedPath) > 5 && splitedPath[3] == "releases" {
+		// In release and download URL's, the tag is the 6th element
 		tag = splitedPath[5]
+		if len(splitedPath) > 6 && splitedPath[4] == "download" {
+			// In download URL's, the asset name is the 7th element
+			asset = splitedPath[6]
+		}
 	}
 
 	token := os.Getenv("GITHUB_AUTH_TOKEN")
@@ -143,5 +176,5 @@ func newGitHub(u *url.URL) (Provider, error) {
 		client = github.NewClient(tc)
 	}
 
-	return &gitHub{url: u, client: client, owner: splitedPath[1], repo: splitedPath[2], tag: tag, token: token}, nil
+	return &gitHub{url: u, client: client, owner: owner, repo: repo, tag: tag, asset: asset, token: token}, nil
 }
