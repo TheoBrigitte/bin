@@ -96,24 +96,18 @@ func (g *gitHub) GetID() string {
 }
 
 func newGitHub(u *url.URL) (Provider, error) {
-	s := strings.Split(u.Path, "/")
-	if len(s) < 3 {
+	splitedPath := strings.Split(u.Path, "/")
+	if len(splitedPath) < 3 {
 		return nil, fmt.Errorf("error parsing Github URL %s, can't find owner and repo", u.String())
 	}
 
 	// it's a specific releases URL
 	var tag string
-	if strings.Contains(u.Path, "/releases/") {
+	if strings.Contains(u.Path, "/releases/") && len(splitedPath) > 4 {
 		// For release and download URL's, the
 		// path is usually /releases/tag/v0.1
 		// or /releases/download/v0.1.
-		ps := strings.Split(u.Path, "/")
-		for i, p := range ps {
-			if p == "releases" {
-				tag = strings.Join(ps[i+2:], "/")
-			}
-		}
-
+		tag = splitedPath[5]
 	}
 
 	token := os.Getenv("GITHUB_AUTH_TOKEN")
@@ -149,5 +143,5 @@ func newGitHub(u *url.URL) (Provider, error) {
 		client = github.NewClient(tc)
 	}
 
-	return &gitHub{url: u, client: client, owner: s[1], repo: s[2], tag: tag, token: token}, nil
+	return &gitHub{url: u, client: client, owner: splitedPath[1], repo: splitedPath[2], tag: tag, token: token}, nil
 }
